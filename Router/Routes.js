@@ -80,4 +80,14 @@ router.post('/getuser',fetch, async (req,res)=>{
 router.get('/', (req,res) => {
     res.send("Hello this is backend Testing website")
 })
+router.get('/find', async (req,res) => {
+    try{
+    const a= await User.find()
+    res.send(a)
+    }
+    catch(error)
+    {
+        res.send(error)
+    }
+})
 module.exports = router
