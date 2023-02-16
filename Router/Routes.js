@@ -3,7 +3,9 @@ const { body, validationResult } = require('express-validator')
 const User = require('../documents/user')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const fetch=require('../Fetch/Fetchuser')
 const router = express.Router();
+const JWT_SECRET ="jwtsecret"
 router.post('/createuser', [
     body('name', 'name length must be minimum 3').isLength({ min: 4 }),
     body('email', 'email is not right').isEmail(),
@@ -27,8 +29,9 @@ router.post('/createuser', [
         email: req.body.email,
         password: pass
     })
-    // res.json(user)
-    const authtoken=jwt.sign({id:user.id,name:user.name,email:user.email},"jwtsecret")
+    const authtoken=jwt.sign({
+        user:user.id
+    },JWT_SECRET)
     res.send(authtoken)
     }
     catch(error)
@@ -36,7 +39,45 @@ router.post('/createuser', [
         res.status(500).send("Some Error Occured")
     }
 })
-router.get('/', () => {
+router.post('/login', [
+    body('email','email is not right').isEmail(),
+    body('password', 'password length must be minimum 5').isLength({ min: 3 })
+], async (req, res) => {
+    const error = validationResult(req);
+    if (!error.isEmpty()) {
+        return res.status(404).json({ errors: error.array() });
+    }
+    try{
+        const {email,password}=req.body
+        let user = await User.findOne({email})
+    if(!user)
+    {
+        return res.status(404).json({error:"Wrong Login credentials"})
+    }
+    const passcompare=await bcrypt.compare(password,user.password)
+    if(!passcompare){
+        return res.status(404).json({error:"Wrong Login credentials"})
+    }
+    // console.log(typeof user)
+    const authtoken=jwt.sign(user.id,JWT_SECRET)
+    res.send(authtoken)
+    }
+    catch(error)
+    {
+        console.log(error)
+        res.status(500).send("Some Error Occured")
+    }
+})
+router.post('/getuser',fetch, async (req,res)=>{
+    try{
+        const user=await User.findById(req.id)
+        res.json(user)
+    }
+    catch(error){
+        res.status(500).send("An error encountered")
+    }
+})
+router.get('/', (req,res) => {
     res.send("Hello this is backend Testing website")
 })
 module.exports = router
